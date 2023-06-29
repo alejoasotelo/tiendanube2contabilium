@@ -36,6 +36,7 @@ function getProductosTiendaNube()
         }
 
         // Limito los caracteres de la descripción
+        $data[20] = str_replace(array("\r\n", "\r", "\n"), ' ', $data[20]);
         $data[20] = substr(strip_tags($data[20]), 0, TIENDANUBE_MAX_CHARS_DESCRIPTION);
 
         if (empty($data[1])) {
