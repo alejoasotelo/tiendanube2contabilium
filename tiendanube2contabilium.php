@@ -1,8 +1,11 @@
 <?php
 
+define('TIENDANUBE_MAX_ROWS', 1000);
+define('TIENDANUBE_MAX_CHARS_DESCRIPTION', 499);
+
 function getTiendaNubeHeaders()
 {
-    if (($handle = fopen(__DIR__ . "/data/contabilium_template.csv", "r")) === false) {
+    if (($handle = @fopen(__DIR__ . "/data/contabilium_template.csv", "r")) === false) {
         return false;
     }
 
@@ -19,7 +22,7 @@ function getTiendaNubeHeaders()
 function getProductosTiendaNube()
 {
     $productos = array();
-    if (($handle = fopen(__DIR__ . "/data/tiendanube_productos.csv", "r")) === false) {
+    if (($handle = @fopen(__DIR__ . "/data/tiendanube_productos.csv", "r")) === false) {
         return false;
     }
 
@@ -31,6 +34,9 @@ function getProductosTiendaNube()
             $firstRow = false;
             continue;
         }
+
+        // Limito los caracteres de la descripción
+        $data[20] = substr(strip_tags($data[20]), 0, TIENDANUBE_MAX_CHARS_DESCRIPTION);
 
         if (empty($data[1])) {
             $data[1] = $lastName;
@@ -73,7 +79,26 @@ function convertHeaders($tiendaNube)
     return $output;
 }
 
-$output = __DIR__ . '/data/contabilium_productos.csv';
+function generateContabiliumCSV($filename, $headers, $productos)
+{
+    if (file_exists($filename) && !@unlink($filename)) {
+        return false;
+    }
+
+    $fp = @fopen($filename, 'w');
+    if ($fp === false) {
+        return false;
+    }
+
+    fputcsv($fp, $headers, ';');
+    foreach ($productos as $fields) {
+        fputcsv($fp, $fields, ';');
+    }
+
+    fclose($fp);
+
+    return true;
+}
 
 $tiendanubeHeaders = getTiendaNubeHeaders();
 if (!$tiendanubeHeaders) {
@@ -87,16 +112,14 @@ if (!$tiendanubeProductos) {
     exit;
 }
 
-if (file_exists($output)) {
-    unlink($output);
-}
+$chunksProductos = array_chunk($tiendanubeProductos, TIENDANUBE_MAX_ROWS);
 
-$fp = fopen($output, 'w');
-if ($fp === false) {
-    exit;
-}
-
-fputcsv($fp, $tiendanubeHeaders, ';');
-foreach ($tiendanubeProductos as $fields) {
-    fputcsv($fp, $fields, ';');
+foreach ($chunksProductos as $i => $productos) {
+    $file = 'contabilium_productos_' . ($i + 1) . '.csv';
+    $output = __DIR__ . '/data/' . $file;
+    if (generateContabiliumCSV($output, $tiendanubeHeaders, $productos)) {
+        echo 'Archivo generado: ' . $file . PHP_EOL;
+    } else {
+        echo '(!) Error al generar el CSV: ' . $file . PHP_EOL;
+    }
 }
