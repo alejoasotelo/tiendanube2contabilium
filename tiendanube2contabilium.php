@@ -1,8 +1,55 @@
 <?php
 
+function getTiendaNubeHeaders()
+{
+    if (($handle = fopen(__DIR__ . "/data/contabilium_template.csv", "r")) === false) {
+        return false;
+    }
+
+    $tiendanubeHeaders = fgetcsv($handle, 1000, ";");
+    fclose($handle);
+
+    if ($tiendanubeHeaders === false) {
+        return false;
+    }
+
+    return $tiendanubeHeaders;
+}
+
+function getProductosTiendaNube()
+{
+    $productos = array();
+    if (($handle = fopen(__DIR__ . "/data/tiendanube_productos.csv", "r")) === false) {
+        return false;
+    }
+
+    $lastName = '';
+    $lastDescripcion = '';
+    $firstRow = true;
+    while (($data = fgetcsv($handle, 1000, ";")) !== FALSE) {
+        if ($firstRow) {
+            $firstRow = false;
+            continue;
+        }
+
+        if (empty($data[1])) {
+            $data[1] = $lastName;
+            $data[20] = $lastDescripcion;
+        } else {
+            $lastName = $data[1];
+            $lastDescripcion = $data[20];
+        }
+
+        $productos[] = convertHeaders($data);
+    }
+
+    fclose($handle);
+
+    return $productos;
+}
+
 function convertHeaders($tiendaNube)
 {
-
     $output = [];
 
     $output[0] = $tiendaNube[1]; // Nombre
@@ -26,55 +73,19 @@ function convertHeaders($tiendaNube)
     return $output;
 }
 
-function getProductosTiendaNube()
-{
-    $productos = array();
-    if (($handle = fopen(__DIR__ . "/data/tiendanube_productos.csv", "r")) !== FALSE) {
-        $lastName = '';
-        $lastDescripcion = '';
-        $i = 0;
-        while (($data = fgetcsv($handle, 1000, ";")) !== FALSE) {
-            if ($i === 0) {
-                $i++;
-                continue;
-            }
-
-            if (empty($data[1])) {
-                $data[1] = $lastName;
-                $data[20] = $lastDescripcion;
-            } else {
-                $lastName = $data[1];
-                $lastDescripcion = $data[20];
-            }
-
-            $productos[] = convertHeaders($data);
-        }
-        fclose($handle);
-    }
-
-    return $productos;
-}
-
-function getTiendaNubeHeaders()
-{
-    if (($handle = fopen(__DIR__ . "/data/contabilium_template.csv", "r")) === false) {
-        echo 'No existe contabilium_template.csv' . PHP_EOL;
-        exit;
-    }
-
-    $tiendanubeHeaders = fgetcsv($handle, 1000, ";");
-    if ($tiendanubeHeaders === false) {
-        exit;
-    }
-
-    fclose($handle);
-
-    return $tiendanubeHeaders;
-}
-
 $output = __DIR__ . '/data/contabilium_productos.csv';
+
 $tiendanubeHeaders = getTiendaNubeHeaders();
+if (!$tiendanubeHeaders) {
+    echo 'No existe, no se pudo leer o es inválido contabilium_template.csv' . PHP_EOL;
+    exit;
+}
+
 $tiendanubeProductos = getProductosTiendaNube();
+if (!$tiendanubeProductos) {
+    echo 'No existe o no se pudo leer tiendanube_productos.csv' . PHP_EOL;
+    exit;
+}
 
 if (file_exists($output)) {
     unlink($output);
