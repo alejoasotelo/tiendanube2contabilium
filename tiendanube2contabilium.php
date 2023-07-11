@@ -62,7 +62,7 @@ function convertHeaders($tiendaNube)
     $output[0] = $tiendaNube[1]; // Nombre
     $output[1] = $tiendaNube[16]; // codigo sku
     $output[2] = $tiendaNube[20]; // Descripcion
-    $output[3] = 0; // stock
+    $output[3] = $tiendaNube[15]; // stock
     $output[4] = 3; // stock minimo
     $output[5] = str_replace('.', ',', str_replace(',', '', $tiendaNube[9])); // precio unitario
     $output[6] = ''; // observaciones
